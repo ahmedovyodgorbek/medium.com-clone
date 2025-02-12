@@ -40,7 +40,10 @@ INSTALLED_APPS = [
     # installed apps
     'rest_framework',
     # local apps
-    'app_posts'
+    'app_posts',
+    'app_users',
+    'app_notifications',
+    'app_common'
 ]
 
 MIDDLEWARE = [
