@@ -25,7 +25,7 @@ class ProfileModel(BaseModel):
 
 class ConfirmationCodesModel(BaseModel):
     code = models.PositiveSmallIntegerField(unique=True)
-    user = models.ForeignKey(UserModel, models.CASCADE, related_name='confirmation_codes')
+    user = models.OneToOneField(UserModel, models.CASCADE, related_name='confirmation_codes')
     minutes_to_expire = models.PositiveSmallIntegerField(default=2)
 
     def __str__(self):
