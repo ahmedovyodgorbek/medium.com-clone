@@ -5,8 +5,7 @@ from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from app_users.serializers import LoginSerializer, RegisterSerializer, ConfirmEmailSerializer
-from app_users.utils import get_tokens_for_user
+from app_users.serializers import LoginSerializer, RegisterSerializer, ConfirmEmailSerializer, ResendCodeSerializer
 from .email import send_email_confirmation
 from .models import ConfirmationCodesModel
 
@@ -19,7 +18,7 @@ class LoginApiView(APIView):
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data.get('user')
-        tokens = get_tokens_for_user(user)
+        tokens = user.get_tokens()
 
         return Response(data=tokens, status=status.HTTP_200_OK)
 
@@ -27,29 +26,38 @@ class LoginApiView(APIView):
 class RegisterApiView(APIView):
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
 
-            email_thread = threading.Thread(target=send_email_confirmation, args=(user,))
-            email_thread.start()
+        email_thread = threading.Thread(target=send_email_confirmation, args=(user,))
+        email_thread.start()
 
-            return Response(data={"success": True,
-                                  "detail": "Confirmation code has been sent to your email",
-                                  "data": serializer.data},
-                            status=status.HTTP_201_CREATED)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(data={"detail": "Confirmation code has been sent to your email",
+                              "data": serializer.data},
+                        status=status.HTTP_201_CREATED)
 
 
 class ConfirmEmailApiView(APIView):
     def post(self, request):
         serializer = ConfirmEmailSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-            ConfirmationCodesModel.objects.filter(user=user).delete()
-            user.is_active = True
-            user.save()
-            return Response({
-                "success": True,
-                "detail": "Your email has been confirmed"
-            }, status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        ConfirmationCodesModel.objects.filter(user=user).delete()
+        user.is_active = True
+        tokens = user.get_tokens()
+        user.save()
+        return Response(data=tokens,
+                        status=status.HTTP_200_OK)
+
+
+class ResendCodeApiView(APIView):
+    def post(self, request):
+        serializer = ResendCodeSerializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+
+        email_thread = threading.Thread(target=send_email_confirmation, args=(user,))
+        email_thread.start()
+
+        return Response("Confirmation code has been sent to your email",
+                        status=status.HTTP_200_OK)

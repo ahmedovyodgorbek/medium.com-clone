@@ -1,6 +1,7 @@
 from datetime import timedelta, datetime
 
 from django.contrib.auth import get_user_model, authenticate
+from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
 
@@ -64,17 +65,39 @@ class ConfirmEmailSerializer(serializers.Serializer):
         created_at = confirmation_code.created_at
         expire_at = created_at + timedelta(minutes=confirmation_code.minutes_to_expire)
         now = timezone.now()
-        if expire_at < now:
+        if now > expire_at:
+            raise serializers.ValidationError("Confirmation code is expired")
+        return attrs
+
+
+class ResendCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+    def validate(self, attrs):
+        try:
+            user = UserModel.objects.get(email=attrs['email'])
+            confirmation_code = ConfirmationCodesModel.objects.get(user=user)
+            attrs['user'] = user
+        except UserModel.DoesNotExist:
             raise serializers.ValidationError({
                 "success": False,
-                "detail": "Confirmation code is expired"
+                "detail": "User with this email does not exist"
             })
 
+        created_at = confirmation_code.created_at
+        expire_at = created_at + timedelta(minutes=confirmation_code.minutes_to_expire)
+        now = timezone.now()
+        if now < expire_at:
+            raise serializers.ValidationError("You have an active code")
+
+        ConfirmationCodesModel.objects.filter(user=user).delete()
         return attrs
 
 
 class RegisterSerializer(serializers.ModelSerializer):
     password2 = serializers.CharField(write_only=True)
+    first_name = serializers.CharField(max_length=128, required=False)
+    last_name = serializers.CharField(max_length=128, required=False)
 
     class Meta:
         model = UserModel
@@ -82,22 +105,18 @@ class RegisterSerializer(serializers.ModelSerializer):
         extra_kwargs = {'password': {'write_only': True}}
 
     def validate(self, attrs):
-        if attrs['password'] != attrs['password2']:
-            raise serializers.ValidationError({
-                "success": False,
-                "detail": "Passwords do not match"
-            })
+        password = attrs.get('password')
+        password2 = attrs.get('password2')
+
+        if password != password2:
+            raise serializers.ValidationError("Passwords do not match")
+        validate_password(password=password)
         return attrs
 
     def create(self, validated_data):
         validated_data.pop('password2')
 
-        user = UserModel(
-            first_name=validated_data['first_name'],
-            last_name=validated_data['last_name'],
-            username=validated_data['username'],
-            email=validated_data['email'],
-        )
+        user = UserModel.objects.create(**validated_data)
         user.set_password(validated_data['password'])
         user.is_active = False
         user.save()
@@ -111,6 +130,5 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token = super().get_token(user)
 
         token['username'] = user.username
-        token['email'] = user.email
 
         return token
