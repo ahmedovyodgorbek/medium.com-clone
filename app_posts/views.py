@@ -6,7 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from app_posts.models import PostsModel
+from app_posts.models import PostsModel, PostClapsModel
 from .serializers import PostModelSerializer
 
 
@@ -87,3 +87,15 @@ class PostDetailAPIView(APIView):
                 "success": False,
                 "detail": "Post was not found"
             })
+
+
+# class PostClapApiView(APIView):
+#     serializer_class = PostClapsSerializer
+#     permission_classes = [IsAuthenticated]
+#
+#     def post(self, request):
+#         serializer = self.serializer_class(data=request.data)
+#         serializer.is_valid(raise_exception=True)
+#         post = serializer.validated_data.get('post')
+#         PostClapsModel.objects.create(user=request.user, post=post)
+

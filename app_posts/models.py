@@ -51,8 +51,9 @@ class PostClapsModel(BaseModel):
 class PostCommentsModel(BaseModel):
     user = models.ForeignKey(UserModel, on_delete=models.SET_NULL,
                              related_name='post_comments', null=True)
-    post = models.ForeignKey(PostsModel, models.CASCADE, related_name='comments')
-    parent = models.ForeignKey('self', on_delete=models.CASCADE, related_name='children')
+    post = models.ForeignKey(PostsModel, on_delete=models.CASCADE, related_name='comments')
+    parent = models.ForeignKey('self', blank=True, null=True,
+                               on_delete=models.CASCADE, related_name='children')
 
     comment = models.TextField()
 

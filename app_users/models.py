@@ -5,6 +5,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import AbstractUser
 from django.core.validators import FileExtensionValidator
 from django.db import models
+from django.utils.timezone import now
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from app_common.models import BaseModel
@@ -15,8 +16,8 @@ class CustomUserModel(AbstractUser):
 
     def get_tokens(self):
         refresh = RefreshToken.for_user(self)
-        refresh.set_exp(lifetime=timedelta(seconds=30))
-        refresh.access_token.set_exp(lifetime=timedelta(seconds=10))
+        refresh.set_exp(lifetime=timedelta(days=7))
+        refresh.access_token.set_exp(lifetime=timedelta(days=1))
 
         return {
             'refresh': str(refresh),
@@ -68,3 +69,15 @@ class ConfirmationCodesModel(BaseModel):
     class Meta:
         verbose_name = 'confirmation code'
         verbose_name_plural = 'confirmation codes'
+
+
+class OTPModel(BaseModel):
+    password = models.CharField(max_length=18)
+    user = models.OneToOneField(UserModel, on_delete=models.CASCADE)
+
+    def is_valid(self):
+        return (now() - self.created_at).seconds < 180  # 2 minutes
+
+    class Meta:
+        verbose_name = 'OTP password'
+        verbose_name_plural = 'OTP passwords'

@@ -15,3 +15,16 @@ def send_email_confirmation(user):
         settings.EMAIL_HOST_USER,
         [user.email],
     )
+
+
+def send_OTP(user, password):
+    subject = "Your One Time Password"
+    message = f"Hello {user.username},\n\nYour confirmation code is: {password}"
+    message += "\nThis will expire in 2 minutes"
+
+    send_mail(
+        subject,
+        message,
+        settings.EMAIL_HOST_USER,
+        [user.email],
+    )
