@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
+from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -18,9 +19,10 @@ UserModel = get_user_model()
 
 class LoginApiView(APIView):
     permission_classes = [AllowAny]
+    serializer_class = serializers.LoginSerializer
 
     def post(self, request):
-        serializer = serializers.LoginSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
 
         user = serializer.validated_data.get('user')
@@ -28,10 +30,15 @@ class LoginApiView(APIView):
 
         return Response(data=tokens, status=status.HTTP_200_OK)
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
 
 class RegisterApiView(APIView):
+    serializer_class = serializers.RegisterSerializer
+
     def post(self, request):
-        serializer = serializers.RegisterSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
@@ -42,10 +49,15 @@ class RegisterApiView(APIView):
                               "data": serializer.data},
                         status=status.HTTP_201_CREATED)
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
 
 class ConfirmEmailApiView(APIView):
+    serializer_class = serializers.ConfirmEmailSerializer
+
     def post(self, request):
-        serializer = serializers.ConfirmEmailSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
         ConfirmationCodesModel.objects.filter(user=user).delete()
@@ -55,10 +67,15 @@ class ConfirmEmailApiView(APIView):
         return Response(data=tokens,
                         status=status.HTTP_200_OK)
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
 
 class ResendCodeApiView(APIView):
+    serializer_class = serializers.ResendCodeSerializer
+
     def post(self, request):
-        serializer = serializers.ResendCodeSerializer(data=request.data)
+        serializer = self.serializer_class(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.validated_data['user']
 
@@ -68,20 +85,34 @@ class ResendCodeApiView(APIView):
         return Response("Confirmation code has been sent to your email",
                         status=status.HTTP_200_OK)
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
 
-class UserProfileApiView(APIView):
-    permission_classes = [IsAuthenticated]
+
+class UserProfileApiView(RetrieveUpdateAPIView):
     serializer_class = serializers.UserSerializer
+    permission_classes = [IsAuthenticated]
 
-    def get(self, request):
-        serializer = self.serializer_class(data=request.user)
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+    def get_object(self):
+        return self.request.user  # Ensure the current user is returned
 
-    def patch(self, request):
-        serializer = self.serializer_class(instance=request.user, data=request.data, partial=True)
-        serializer.is_valid(raise_exception=True)
-        serializer.save()
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
+
+# permission_classes = [IsAuthenticated]
+# serializer_class = serializers.UserSerializer
+#
+# def get(self, request):
+#     serializer = self.serializer_class(data=request.user)
+#     serializer.is_valid(raise_exception=True)
+#     return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+# def patch(self, request):
+#     serializer = self.serializer_class(instance=request.user, data=request.data, partial=True)
+#     serializer.is_valid(raise_exception=True)
+#     serializer.save()
+#     return Response(data=serializer.data, status=status.HTTP_200_OK)
+#
+# def get_serializer(self, *args, **kwargs):
+#     return self.serializer_class(*args, **kwargs)
 
 
 class UpdatePasswordApiView(APIView):
@@ -93,6 +124,9 @@ class UpdatePasswordApiView(APIView):
         serializer.is_valid(raise_exception=True)
         serializer.save()
         return Response("Password has been updated successfully", status=status.HTTP_200_OK)
+
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
 
 
 class ForgotPasswordApiView(APIView):
@@ -113,6 +147,9 @@ class ForgotPasswordApiView(APIView):
 
         return Response(data="Check your email for One Time Password", status=status.HTTP_200_OK)
 
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
 
 class ResetPasswordApiView(APIView):
     serializer_class = serializers.ResetPasswordSerializer
@@ -127,3 +164,6 @@ class ResetPasswordApiView(APIView):
         user.save()
 
         return Response(data="New password has been set", status=status.HTTP_200_OK)
+
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)

@@ -126,10 +126,10 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
-    short_bio = serializers.CharField(source='profile.short_bio')
-    avatar = serializers.ImageField(source='profile.avatar')
-    about = serializers.CharField(source='profile.about')
-    pronouns = serializers.CharField(source='profile.pronouns')
+    short_bio = serializers.CharField(source='profile.short_bio', required=False)
+    avatar = serializers.ImageField(source='profile.avatar', required=False)
+    about = serializers.CharField(source='profile.about', required=False)
+    pronouns = serializers.CharField(source='profile.pronouns', required=False)
 
     class Meta:
         model = UserModel
@@ -137,20 +137,20 @@ class UserSerializer(serializers.ModelSerializer):
                   'short_bio', 'avatar', 'about', 'pronouns']
 
     def update(self, instance, validated_data):
-        profile = validated_data.pop('profile', {})
+        # Extract and remove profile data
+        profile_data = validated_data.pop('profile', {})
 
-        instance.first_name = validated_data.get('first_name', instance.first_name)
-        instance.last_name = validated_data.get('last_name', instance.last_name)
-        instance.email = validated_data.get('email', instance.email)
-        instance.username = validated_data.get('username', instance.username)
+        # Update User fields
+        for attr, value in validated_data.items():
+            setattr(instance, attr, value)
         instance.save()
 
+        # Update Profile fields (if profile exists)
         profile = instance.profile
-        profile.short_bio = validated_data.get('short_bio', profile.short_bio)
-        profile.avatar = validated_data.get('avatar', profile.avatar)
-        profile.about = validated_data.get('about', profile.about)
-        profile.pronouns = validated_data.get('pronouns', profile.pronouns)
+        for attr, value in profile_data.items():
+            setattr(profile, attr, value)
         profile.save()
+
         return instance
 
 
