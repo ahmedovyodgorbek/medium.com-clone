@@ -61,3 +61,29 @@ class PostClapsUserSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_is_followed(obj):
         return True
+
+
+class PostCommentsSerializer(serializers.ModelSerializer):
+    children = serializers.SerializerMethodField()
+    user = serializers.StringRelatedField()
+
+    class Meta:
+        model = PostCommentsModel
+        fields = ['id', 'parent', 'comment', 'user', 'children']
+
+    @staticmethod
+    def get_children(obj):
+        return obj.children.count()
+
+
+class PostCommentClapsSerializer(serializers.Serializer):
+    pass
+
+
+class PostCommentSerializer(serializers.ModelSerializer):
+    user = serializers.StringRelatedField()
+
+    class Meta:
+        model = PostCommentsModel
+        fields = ['comment', 'user']
+        read_only_fields = ['user']

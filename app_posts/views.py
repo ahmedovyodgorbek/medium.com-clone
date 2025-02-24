@@ -3,111 +3,27 @@ from django.shortcuts import render
 from rest_framework import status
 from rest_framework.decorators import api_view
 from rest_framework.exceptions import NotFound, ValidationError
-from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListAPIView
+from rest_framework.generics import RetrieveUpdateDestroyAPIView, ListAPIView, ListCreateAPIView, get_object_or_404
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from app_common.pagination import StandardResultsSetPagination
-from app_common.permissions import IsOwnerOrReadOnly
-from app_posts.models import PostsModel, PostClapsModel
+from app_common.permissions import IsOwnerOrReadOnly, IsCommentOwner
+from app_posts.models import PostsModel, PostClapsModel, PostCommentsModel, PostCommentClapsModel
 from . import serializers
 
 UserModel = get_user_model()
 
 
-class PostAPIView(APIView):
+class PostAPIView(ListCreateAPIView):
+    queryset = PostsModel.objects.all()
     serializer_class = serializers.PostModelSerializer
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
 
-    def post(self, request):
-        serializer = self.serializer_class(data=request.data)
-        serializer.is_valid(raise_exception=True)
-        serializer.save(author=request.user)
-        return Response(data=serializer.data, status=status.HTTP_201_CREATED)
-
-    def get(self, request):
-        posts = PostsModel.objects.all()
-
-        paginator = self.pagination_class()
-        paginated_posts = paginator.paginate_queryset(posts, request)
-        serializer = self.serializer_class(paginated_posts, many=True)
-
-        return Response(data=serializer.data, status=status.HTTP_200_OK)
-
-    def get_serializer(self, *args, **kwargs):
-        return self.serializer_class(*args, **kwargs)
-
-
-class PostDetailAPIView(APIView):
-    serializer_class = serializers.PostModelSerializer
-    permission_classes = [IsOwnerOrReadOnly]
-
-    def get(self, request, slug):
-        post = self.get_object(slug=slug)
-        serializer = self.serializer_class(post)
-        return Response({
-            "success": True,
-            "data": serializer.data
-        }, status=status.HTTP_200_OK)
-
-    def put(self, request, slug):
-        post = self.get_object(slug=slug)
-        self.check_object_permissions(request, post)
-
-        serializer = serializers.PostModelSerializer(post, data=request.data)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data={
-                "success": True,
-                "data": serializer.data
-            }, status=status.HTTP_202_ACCEPTED)
-
-        return Response(data={
-            "success": False,
-            "detail": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    def patch(self, request, slug):
-        post = self.get_object(slug=slug)
-        self.check_object_permissions(request, post)
-        serializer = serializers.PostModelSerializer(post, data=request.data, partial=True)
-
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data={
-                "success": True,
-                "data": serializer.data
-            }, status=status.HTTP_202_ACCEPTED)
-
-        return Response(data={
-            "success": False,
-            "detail": serializer.errors
-        }, status=status.HTTP_400_BAD_REQUEST)
-
-    def delete(self, request, slug):
-        post = self.get_object(slug=slug)
-        self.check_object_permissions(request, post)
-        post.delete()
-        return Response(data={
-            "success": True,
-            "detail": "Post is deleted"
-        }, status=status.HTTP_204_NO_CONTENT)
-
-    @staticmethod
-    def get_object(slug):
-        try:
-            return PostsModel.objects.get(slug=slug)
-        except PostsModel.DoesNotExist:
-            raise NotFound({
-                "success": False,
-                "detail": "Post was not found"
-            })
-
-    def get_serializer(self, *args, **kwargs):
-        return self.serializer_class(*args, **kwargs)
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
 
 
 class PostRetrieveUpdateDestroyApiView(RetrieveUpdateDestroyAPIView):
@@ -171,3 +87,70 @@ class PostClapsAPIView(APIView):
 
     def get_serializer(self, *args, **kwargs):
         return self.serializer_class(*args, **kwargs)
+
+
+class PostCommentsListCreateAPIView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    serializer_class = serializers.PostCommentsSerializer
+
+    def get_queryset(self):
+        post = get_object_or_404(PostsModel, slug=self.kwargs['slug'])
+        return PostCommentsModel.objects.filter(post=post, parent__isnull=True).order_by('-id')
+
+    def perform_create(self, serializer):
+        post = get_object_or_404(PostsModel, slug=self.kwargs['slug'])
+        return serializer.save(post=post, user=self.request.user)
+
+
+class CommentChildrenListAPIView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    serializer_class = serializers.PostCommentsSerializer
+
+    def get_queryset(self):
+        comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
+        return PostCommentsModel.objects.filter(parent=comment).order_by('-id')
+
+
+class CommentClapsListCreateAPIView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    pagination_class = StandardResultsSetPagination
+    serializer_class = serializers.PostClapsUserSerializer
+
+    def create(self, request, *args, **kwargs):
+        comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
+        PostCommentClapsModel.objects.create(
+            user=self.request.user, comment=comment
+        )
+        claps_count = PostCommentClapsModel.objects.filter(user=self.request.user, comment=comment).count()
+
+        return Response(data={"claps_count": claps_count}, status=status.HTTP_201_CREATED)
+
+    def list(self, request, *args, **kwargs):
+        comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
+
+        claps = PostCommentClapsModel.objects.filter(comment=comment)
+        claps_count = claps.count()
+
+        user_ids = claps.values_list('user_id', flat=True).distinct()
+        users = UserModel.objects.filter(id__in=user_ids).order_by('-id')
+
+        page = self.paginate_queryset(users)
+        if page is not None:
+            serializer = self.serializer_class(page, many=True)
+        else:
+            serializer = self.serializer_class(page, many=True)
+        return Response({
+            "claps_count": claps_count,
+            "users_count": users.count(),
+            "users": serializer.data
+        })
+
+
+class CommentRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    serializer_class = serializers.PostCommentSerializer
+    queryset = PostCommentsModel
+    lookup_field = 'pk'
+    permission_classes = [IsCommentOwner, IsAuthenticated]
+

@@ -97,24 +97,6 @@ class UserProfileApiView(RetrieveUpdateAPIView):
         return self.request.user  # Ensure the current user is returned
 
 
-# permission_classes = [IsAuthenticated]
-# serializer_class = serializers.UserSerializer
-#
-# def get(self, request):
-#     serializer = self.serializer_class(data=request.user)
-#     serializer.is_valid(raise_exception=True)
-#     return Response(data=serializer.data, status=status.HTTP_200_OK)
-#
-# def patch(self, request):
-#     serializer = self.serializer_class(instance=request.user, data=request.data, partial=True)
-#     serializer.is_valid(raise_exception=True)
-#     serializer.save()
-#     return Response(data=serializer.data, status=status.HTTP_200_OK)
-#
-# def get_serializer(self, *args, **kwargs):
-#     return self.serializer_class(*args, **kwargs)
-
-
 class UpdatePasswordApiView(APIView):
     permission_classes = [IsAuthenticated]
     serializer_class = serializers.UpdatePasswordSerializer
