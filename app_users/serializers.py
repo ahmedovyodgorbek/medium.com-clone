@@ -6,7 +6,7 @@ from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
 
-from app_users.models import ConfirmationCodesModel, OTPModel
+from app_users.models import ConfirmationCodesModel, OTPModel, FollowModel
 
 UserModel = get_user_model()
 
@@ -244,3 +244,9 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['username'] = user.username
 
         return token
+
+
+class FollowUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = FollowModel
+        fields = ['to_user']

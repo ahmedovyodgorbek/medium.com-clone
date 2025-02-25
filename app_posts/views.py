@@ -8,9 +8,9 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
-from app_common.pagination import StandardResultsSetPagination
+from app_common.pagination import StandardResultsSetPagination, LargeResultsSetPagination
 from app_common.permissions import IsOwnerOrReadOnly, IsCommentOwner
-from app_posts.models import PostsModel, PostClapsModel, PostCommentsModel, PostCommentClapsModel
+from app_posts.models import PostsModel, PostClapsModel, PostCommentsModel, PostCommentClapsModel, PostTopicModel
 from . import serializers
 
 UserModel = get_user_model()
@@ -59,7 +59,7 @@ class PostClapsAPIView(APIView):
 
         paginator = self.pagination_class()
         paginated_users = paginator.paginate_queryset(user_objects, request)
-        serializer = self.serializer_class(paginated_users, many=True)
+        serializer = self.serializer_class(paginated_users, many=True, context={"user": request.user})
 
         return Response(data={
             "claps_count": claps_count,
@@ -154,3 +154,20 @@ class CommentRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
     lookup_field = 'pk'
     permission_classes = [IsCommentOwner, IsAuthenticated]
 
+
+class PostTopicListCreateAPIView(ListCreateAPIView):
+    queryset = PostTopicModel.objects.all()
+    pagination_class = LargeResultsSetPagination
+    serializer_class = serializers.PostTopicSerializer
+    permission_classes = [IsAuthenticated]
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+
+class PostTopicRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
+    queryset = PostTopicModel.objects.all()
+    pagination_class = StandardResultsSetPagination
+    serializer_class = serializers.PostTopicSerializer
+    permission_classes = [IsAuthenticated, IsOwnerOrReadOnly]
+    lookup_field = 'slug'

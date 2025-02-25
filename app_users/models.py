@@ -81,3 +81,15 @@ class OTPModel(BaseModel):
     class Meta:
         verbose_name = 'OTP password'
         verbose_name_plural = 'OTP passwords'
+
+
+class FollowModel(BaseModel):
+    from_user = models.ForeignKey(UserModel, models.CASCADE, related_name='following')
+    to_user = models.ForeignKey(UserModel, models.CASCADE, related_name='followers')
+
+    def __str__(self):
+        return f"{self.from_user.username} is following {self.to_user.username}"
+
+    class Meta:
+        verbose_name = 'follower'
+        verbose_name_plural = 'followers'

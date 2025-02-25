@@ -19,6 +19,7 @@ urlpatterns = [
     path('update/password/', views.UpdatePasswordApiView.as_view(), name='update-password'),
     path('forgot/password/', views.ForgotPasswordApiView.as_view(), name='forgot-password'),
     path('reset/password/', views.ResetPasswordApiView.as_view(), name='reset-password'),
+    path('follow/', views.FollowUserAPIView.as_view(), name='follow'),
     path('token/', TokenObtainPairView.as_view(), name='token'),
     path('token/refresh/', TokenRefreshView.as_view(), name='token-refresh'),
 ]

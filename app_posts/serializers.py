@@ -7,16 +7,11 @@ User = get_user_model()
 
 
 class PostAuthorSerializer(serializers.ModelSerializer):
-    full_name = serializers.SerializerMethodField(read_only=True)
     avatar = serializers.ImageField(source='profile.avatar', read_only=True)
 
     class Meta:
         model = User
-        fields = ['full_name', 'avatar']
-
-    @staticmethod
-    def get_full_name(obj):
-        return obj.get_full_name()
+        fields = ['username', 'avatar']
 
 
 class PostModelSerializer(serializers.ModelSerializer):
@@ -58,9 +53,9 @@ class PostClapsUserSerializer(serializers.ModelSerializer):
         model = User
         fields = ['username', 'avatar', 'short_bio', 'is_followed']
 
-    @staticmethod
-    def get_is_followed(obj):
-        return True
+    def get_is_followed(self, obj):
+        user = self.context.get('user')
+        return user.following.filter(to_user_id=obj.id).exists()
 
 
 class PostCommentsSerializer(serializers.ModelSerializer):
@@ -87,3 +82,15 @@ class PostCommentSerializer(serializers.ModelSerializer):
         model = PostCommentsModel
         fields = ['comment', 'user']
         read_only_fields = ['user']
+
+
+class PostTopicSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = PostTopicModel
+        fields = ['id', 'title', 'slug']
+        read_only_fields = ['slug']
+
+    def to_representation(self, instance):
+        data = super().to_representation(instance)
+        data['author'] = PostAuthorSerializer(instance=instance.author).data
+        return data

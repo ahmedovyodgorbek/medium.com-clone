@@ -8,9 +8,11 @@ UserModel = get_user_model()
 
 class PostTopicModel(BaseModel):
     title = models.CharField(max_length=128)
+    slug = models.SlugField(unique=True, null=True)
+    author = models.ForeignKey(UserModel, models.CASCADE, related_name='created_topics')
 
     def __str__(self):
-        return self.title
+        return f"{self.title} by {self.author.username}"
 
     class Meta:
         verbose_name = 'topic'
@@ -76,3 +78,12 @@ class PostCommentClapsModel(BaseModel):
     class Meta:
         verbose_name = 'comment clap'
         verbose_name_plural = 'comment claps'
+
+
+class FollowTopicModel(BaseModel):
+    user = models.ForeignKey(UserModel, models.CASCADE, related_name='topics')
+    topics = models.ManyToManyField(PostTopicModel, related_name='followers')
+
+    class Meta:
+        verbose_name = 'topic follower'
+        verbose_name_plural = 'topic followers'

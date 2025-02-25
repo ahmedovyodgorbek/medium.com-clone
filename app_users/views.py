@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.contrib.auth.models import BaseUserManager
 from django.contrib.auth.hashers import make_password
 from rest_framework import status
+from rest_framework.exceptions import ValidationError
 from rest_framework.generics import RetrieveUpdateAPIView
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
@@ -11,7 +12,7 @@ from rest_framework.views import APIView
 
 from app_users import serializers
 from .email import send_email_confirmation, send_OTP
-from .models import ConfirmationCodesModel, OTPModel
+from .models import ConfirmationCodesModel, OTPModel, FollowModel
 from .utils import generate_secure_password
 
 UserModel = get_user_model()
@@ -149,3 +150,43 @@ class ResetPasswordApiView(APIView):
 
     def get_serializer(self, *args, **kwargs):
         return self.serializer_class(*args, **kwargs)
+
+
+class FollowUserAPIView(APIView):
+    serializer_class = serializers.FollowUserSerializer
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request, *args, **kwargs):
+        response = dict()
+        serializer = self.serializer_class(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        from_user = request.user
+        to_user = serializer.validated_data['to_user']
+        if from_user == to_user:
+            raise ValidationError("You cannot follow yourself")
+        follow_status = FollowModel.objects.filter(from_user=from_user, to_user=to_user)
+        if follow_status.exists():
+            follow_status.first().delete()
+            response['detail'] = f"User unfollowed {to_user}"
+            response['status'] = "unfollowed"
+            return Response(data=response, status=status.HTTP_204_NO_CONTENT)
+        else:
+            FollowModel.objects.create(from_user=from_user, to_user=to_user)
+            response['detail'] = f"User started following {to_user}"
+            response['status'] = "followed"
+            return Response(data=response, status=status.HTTP_201_CREATED)
+
+    def get_serializer(self, *args, **kwargs):
+        return self.serializer_class(*args, **kwargs)
+
+    def get(self, request, *args, **kwargs):
+        follow_type = request.query_params.get('type')
+        if follow_type not in ['following', 'followers']:
+            raise ValidationError("Invalid query params")
+
+        if follow_type == 'following':
+            users = UserModel.objects.filter(id__in=request.user.following.values_list('to_user_id', flat=True))
+        else:
+            users = UserModel.objects.filter(id__in=request.user.followers.values_list('from_user_id', flat=True))
+        serializer = serializers.UserSerializer(users, many=True)
+        return Response(data=serializer.data, status=status.HTTP_200_OK)
