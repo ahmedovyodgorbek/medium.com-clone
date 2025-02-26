@@ -46,7 +46,10 @@ INSTALLED_APPS = [
     'app_posts',
     'app_users',
     'app_notifications',
-    'app_common'
+    'app_common',
+    'app_comments',
+    'app_claps',
+    'app_topics'
 ]
 
 MIDDLEWARE = [

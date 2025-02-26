@@ -1,7 +1,7 @@
 from django.contrib.auth import get_user_model
 from rest_framework import serializers
 
-from .models import PostsModel, PostTopicModel, PostCommentsModel
+from .models import PostsModel, PostTopicModel
 
 User = get_user_model()
 
@@ -37,58 +37,6 @@ class PostModelSerializer(serializers.ModelSerializer):
     @staticmethod
     def get_comments_count(obj):
         return obj.comments.count()
-
-    def to_representation(self, instance):
-        data = super().to_representation(instance)
-        data['author'] = PostAuthorSerializer(instance=instance.author).data
-        return data
-
-
-class PostClapsUserSerializer(serializers.ModelSerializer):
-    short_bio = serializers.CharField(source='profile.short_bio')
-    avatar = serializers.ImageField(source='profile.avatar')
-    is_followed = serializers.SerializerMethodField()
-
-    class Meta:
-        model = User
-        fields = ['username', 'avatar', 'short_bio', 'is_followed']
-
-    def get_is_followed(self, obj):
-        user = self.context.get('user')
-        return user.following.filter(to_user_id=obj.id).exists()
-
-
-class PostCommentsSerializer(serializers.ModelSerializer):
-    children = serializers.SerializerMethodField()
-    user = serializers.StringRelatedField()
-
-    class Meta:
-        model = PostCommentsModel
-        fields = ['id', 'parent', 'comment', 'user', 'children']
-
-    @staticmethod
-    def get_children(obj):
-        return obj.children.count()
-
-
-class PostCommentClapsSerializer(serializers.Serializer):
-    pass
-
-
-class PostCommentSerializer(serializers.ModelSerializer):
-    user = serializers.StringRelatedField()
-
-    class Meta:
-        model = PostCommentsModel
-        fields = ['comment', 'user']
-        read_only_fields = ['user']
-
-
-class PostTopicSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = PostTopicModel
-        fields = ['id', 'title', 'slug']
-        read_only_fields = ['slug']
 
     def to_representation(self, instance):
         data = super().to_representation(instance)

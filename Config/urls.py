@@ -46,4 +46,7 @@ urlpatterns += [
     path('admin/', admin.site.urls),
     path('api/v1/posts/', include('app_posts.urls', namespace='posts')),
     path('api/v1/users/', include('app_users.urls', namespace='users')),
+    path('api/v1/comments/', include('app_comments.urls', namespace='comments')),
+    path('api/v1/claps/', include('app_claps.urls', namespace='claps')),
+    path('api/v1/topics/', include('app_topics.urls', namespace='topics')),
 ]

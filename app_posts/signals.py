@@ -2,7 +2,8 @@ from django.db.models.signals import pre_save
 from django.dispatch import receiver
 from django.utils.text import slugify
 
-from app_posts.models import PostsModel, PostTopicModel
+from app_posts.models import PostsModel
+from app_topics.models import PostTopicModel
 
 
 @receiver(pre_save, sender=PostsModel)
