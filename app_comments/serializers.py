@@ -13,6 +13,7 @@ class PostCommentsSerializer(serializers.ModelSerializer):
     class Meta:
         model = PostCommentsModel
         fields = ['id', 'parent', 'comment', 'user', 'children']
+        read_only_fields = ['id']
 
     @staticmethod
     def get_children(obj):

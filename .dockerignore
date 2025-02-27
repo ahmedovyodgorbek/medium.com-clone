@@ -1,0 +1,42 @@
+# Ignore Python cache files
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Ignore environment variables and secrets
+*.env
+
+# Ignore virtual environment
+venv/
+env/
+
+# Ignore Django migrations cache
+**/migrations/*.pyc
+
+# Ignore local database files
+*.sqlite3
+
+# Ignore logs
+logs/
+*.log
+
+# Ignore static and media files (if not needed in the build)
+staticfiles/
+media/
+
+# Ignore IDE and editor files
+.vscode/
+.idea/
+*.swp
+
+# Ignore Docker-related files (if not needed in the build)
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Ignore Git and dependency files
+.git/
+.gitignore
+node_modules/
+.github

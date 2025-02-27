@@ -25,7 +25,7 @@ class PostCommentsListCreateAPIView(ListCreateAPIView):
         return serializer.save(post=post, user=self.request.user)
 
 
-class CommentChildrenListAPIView(ListAPIView):
+class CommentChildrenListCreateAPIView(ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = StandardResultsSetPagination
     serializer_class = serializers.PostCommentsSerializer
@@ -33,6 +33,11 @@ class CommentChildrenListAPIView(ListAPIView):
     def get_queryset(self):
         comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
         return PostCommentsModel.objects.filter(parent=comment).order_by('-id')
+
+    def perform_create(self, serializer):
+        comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
+        post = comment.post
+        return serializer.save(post=post, parent=comment, user=self.request.user)
 
 
 class CommentRetrieveUpdateDestroyAPIView(RetrieveUpdateDestroyAPIView):
