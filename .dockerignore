@@ -37,6 +37,6 @@ docker-compose.yml
 
 # Ignore Git and dependency files
 .git/
+.github/
 .gitignore
 node_modules/
-.github

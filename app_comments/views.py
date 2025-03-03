@@ -31,10 +31,16 @@ class CommentChildrenListCreateAPIView(ListCreateAPIView):
     serializer_class = serializers.PostCommentsSerializer
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return PostCommentsModel.objects.none()
+
         comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
         return PostCommentsModel.objects.filter(parent=comment).order_by('-id')
 
     def perform_create(self, serializer):
+        if getattr(self, 'swagger_fake_view', False):
+            return
+
         comment = get_object_or_404(PostCommentsModel, id=self.kwargs['pk'])
         post = comment.post
         return serializer.save(post=post, parent=comment, user=self.request.user)

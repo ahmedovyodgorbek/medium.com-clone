@@ -13,4 +13,3 @@ def generate_secure_password(length=12):
                 any(c.isdigit() for c in password) and
                 any(c in string.punctuation for c in password)):
             return password
-

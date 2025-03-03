@@ -5,12 +5,11 @@ from django.contrib.auth.hashers import check_password
 from django.contrib.auth.password_validation import validate_password
 from django.utils import timezone
 from rest_framework import serializers
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 from app_users.models import ConfirmationCodesModel, OTPModel, FollowModel
 
 UserModel = get_user_model()
-
-from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 
 
 class LoginSerializer(serializers.Serializer):
@@ -23,7 +22,7 @@ class LoginSerializer(serializers.Serializer):
 
         try:
             user = UserModel.objects.get(username=email_or_username)
-        except:
+        except UserModel.DoesNotExist:
             user = UserModel.objects.get(email=email_or_username)
 
         if user is None:
@@ -212,7 +211,7 @@ class ResetPasswordSerializer(serializers.Serializer):
 
         try:
             user = UserModel.objects.get(email=email)
-        except:
+        except UserModel.DoesNotExist:
             raise serializers.ValidationError("Invalid Email")
 
         try:
