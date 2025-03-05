@@ -10,7 +10,7 @@ class RegisterApiTestCase(APITestCase):
     def setUp(self):
         self.register_url = reverse('users:register')  # Update with the actual URL name
         self.user_data = {
-            "first_name": "John",
+            "first_name": "Johny",
             "last_name": "Doe",
             "username": "johndoe",
             "email": "johndoe@example.com",
